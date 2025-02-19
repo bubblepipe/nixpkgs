@@ -4,11 +4,13 @@
   buildGoModule,
   fetchFromGitHub,
   stdenv,
+  rustPlatform,
+  nix-update-script,
   pnpm_9,
   nodejs_22,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+rustPlatform.buildRustPackage rec {
   pname = "hslink";
   version = "pre-release";
 
@@ -19,6 +21,10 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-drYlb2OgHj430CRkrMvEkBryuONp+M+tE24qBOyLgfI=";
   };
 
+  sourceRoot = "${src.name}/src-tauri";
+
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-yqNvVXER27OIgrZc9b0a/worOFIkEb3/CQpfguA7ltU=";
 
 
   nativeBuildInputs = [
@@ -34,20 +40,29 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildInputs = [ nodejs_22 ];
 
-prePnpmInstall = ''
-  pnpm config set dedupe-peer-dependants false
-'';
 
   pnpmDeps = pnpm_9.fetchDeps {
-    inherit (finalAttrs) pname version src prePnpmInstall;
+    inherit pname version src;
     hash = "sha256-sXmh8MxCp6E0kLVR2+vkEh7pKGlCfIrmPEsFrT/o4Gs=";
 
   };
 
-  buildPhase = ''
-      runHook preBuild
 
-    pnpm install
+  passthru = {
+    inherit pnpmDeps;
+    updateScript = nix-update-script { };
+  };
+
+
+  buildPhase = ''
+    runHook preBuild
+
+    echo "buildPhase"
+
+    ls -R
+
+    pwd
+ 
     pnpm tauri build
     runHook postBuild
   '';
@@ -55,7 +70,10 @@ prePnpmInstall = ''
   installPhase = ''
     runHook preInstall
 
-    ls 
+    echo "installPhase"
+    ls -R
+
+    cp target/release/hslink $out/bin/
     runHook postInstall
   '';
 
@@ -69,4 +87,4 @@ prePnpmInstall = ''
       bubblepipe
     ];
   };
-})
+}
