@@ -35,10 +35,30 @@ rustPlatform.buildRustPackage rec {
     pkgs.cargo
     pkgs.cargo-tauri
     pkgs.rustc
+    pkgs.rustup
     pkgs.openssl
+    pkgs.gtk3
+    pkgs.pkg-config
   ];
 
-  buildInputs = [ nodejs_22 ];
+  buildInputs = [ 
+    nodejs_22  
+    pkgs.gtk3 
+    pkgs.at-spi2-atk
+    pkgs.atkmm
+    pkgs.cairo
+    pkgs.gdk-pixbuf
+    pkgs.glib
+    pkgs.gtk3
+    pkgs.harfbuzz
+    pkgs.librsvg
+    pkgs.libsoup_3
+    pkgs.pango
+    pkgs.webkitgtk_4_1
+    pkgs.openssl
+    pkgs.libgudev
+    pkgs.systemd
+  ];
 
 
   pnpmDeps = pnpm_9.fetchDeps {
@@ -47,35 +67,18 @@ rustPlatform.buildRustPackage rec {
 
   };
 
+  preConfigure = ''
+    # pnpm.configHook has to write to .., as our sourceRoot is set to src-tauri
+    # TODO: move frontend into its own drv
+    export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH"
+
+    chmod +w -R ..
+  '';
 
   passthru = {
     inherit pnpmDeps;
     updateScript = nix-update-script { };
   };
-
-
-  buildPhase = ''
-    runHook preBuild
-
-    echo "buildPhase"
-
-    ls -R
-
-    pwd
- 
-    pnpm tauri build
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-
-    echo "installPhase"
-    ls -R
-
-    cp target/release/hslink $out/bin/
-    runHook postInstall
-  '';
 
   meta = with lib; {
     homepage = "https://github.com/HSLink/HSLinkUpper";
